@@ -251,6 +251,11 @@ if [ "${ID}" = "azurelinux" ]; then
     VERSION_CODENAME="azurelinux${VERSION_ID}"
 fi
 
+# Treat forky(sid) as trixie
+if [ "${VERSION_CODENAME}" = "forky" ]; then
+    VERSION_CODENAME="trixie"
+fi
+
 # Prevent attempting to install Moby on Debian trixie (packages not available)
 if [ "${USE_MOBY}" = "true" ] && [ "${ADJUSTED_ID}" = "debian" ] && [ "${VERSION_CODENAME}" = "trixie" ]; then
     err "The 'moby' option is not supported on ${ID} '${VERSION_CODENAME}' because 'moby-cli' and related system packages are not available in that distribution."
