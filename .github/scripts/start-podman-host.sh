@@ -12,11 +12,15 @@ set -euo pipefail
 uid=$(id -u)
 run_dir=/run/user/$uid
 
+# sudo on the runner keeps XDG_RUNTIME_DIR. Rootful crun then writes its state to
+# /run/user/<uid>/crun as root, and rootless crun of the user cannot use that directory.
+as_root() { sudo env -u XDG_RUNTIME_DIR "$@"; }
+
 sudo systemctl start podman.socket
 
 sudo install -d -m 0755 /run/user/1000/podman
 # shellcheck disable=SC2024 # The runner user opens the log, and the service writes to it.
-sudo setsid -f podman system service --time=0 unix:///run/user/1000/podman/podman.sock \
+as_root setsid -f podman system service --time=0 unix:///run/user/1000/podman/podman.sock \
     < /dev/null > "$RUNNER_TEMP/podman-rootful.log" 2>&1
 
 # Linger starts the user manager of systemd, which makes the runtime directory of the
@@ -48,10 +52,10 @@ for sock in /run/podman/podman.sock /run/user/1000/podman/podman.sock "$run_dir/
         tries=$((tries + 1))
     done
     sudo stat -c '%n %U:%G %a' "$sock"
-    sudo podman --url "unix://$sock" info \
+    as_root podman --url "unix://$sock" info \
         --format 'Podman {{.Version.Version}} rootless={{.Host.Security.Rootless}} network={{.Host.NetworkBackend}}'
     # The engine must also start a container, not only answer.
-    if ! out=$(sudo podman --url "unix://$sock" run --rm quay.io/podman/hello 2>&1); then
+    if ! out=$(as_root podman --url "unix://$sock" run --rm quay.io/podman/hello 2>&1); then
         echo "::error::No container starts through $sock."
         printf '%s\n' "$out" | tail -n 5
         sudo ls -ldn /run/user "$run_dir" "$run_dir/crun" || true
