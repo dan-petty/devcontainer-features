@@ -20,7 +20,7 @@ state() {
 }
 service_runs() {
     local cmdline
-    cmdline=$(tr '\0' ' ' < "/proc/$(cat "$pid_file")/cmdline" 2> /dev/null) || return 1
+    cmdline=$(tr '\0' ' ' 2> /dev/null < "/proc/$(cat "$pid_file" 2> /dev/null)/cmdline") || return 1
     [[ "$cmdline" == "podman system service "* ]]
 }
 service_stops() {

@@ -12,7 +12,7 @@ check "podman-check" /usr/local/share/podman-check.sh
 api_service_runs() {
     local cmdline
     for cmdline in /proc/[0-9]*/cmdline; do
-        tr '\0' ' ' < "$cmdline" 2> /dev/null
+        tr '\0' ' ' 2> /dev/null < "$cmdline"
         echo
     done | grep '^podman system service'
 }
