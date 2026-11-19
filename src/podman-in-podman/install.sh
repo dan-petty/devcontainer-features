@@ -71,7 +71,10 @@ fi
 # Podman already falls back to cgroupfs and the file event logger in a container without
 # systemd. The file makes the choice fixed. Podman 5 uses pasta for the network of a
 # rootless container by default, and Podman 4 uses slirp4netns. The file sets pasta for
-# each version.
+# each version. The podman package of ubuntu:noble has a CNI configuration file. When no
+# network backend is set, Podman 4 reads that file on a new store and writes a warning,
+# and it selects CNI on a store that has images but no defaultNetworkBackend file. The
+# Feature installs no CNI plugins, so the file sets netavark.
 mkdir -p /etc/containers/containers.conf.d
 cat > "/etc/containers/containers.conf.d/50-${FEATURE_ID}.conf" << EOF
 # Written by the ${FEATURE_ID} Feature.
@@ -80,6 +83,7 @@ cgroup_manager = "cgroupfs"
 events_logger = "file"
 
 [network]
+network_backend = "netavark"
 default_rootless_network_cmd = "pasta"
 EOF
 
