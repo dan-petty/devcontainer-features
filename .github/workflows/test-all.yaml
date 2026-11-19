@@ -14,25 +14,41 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: "Install the devcontainer CLI from package-lock.json"
         run: npm ci
 
-      # npm test runs the generated tests on debian:sid, the scenarios and the duplicate tests.
+      # The generated test on debian:sid, the scenarios and the duplicate test of each Feature
+      # in src/. With -f the CLI does not run the scenarios in test/_global. The test-global
+      # job runs them.
       - name: "Test every Feature on debian:sid"
         if: hashFiles('src/*/devcontainer-feature.json') != ''
-        run: npm test
+        timeout-minutes: 50
+        run: |
+          ids=()
+          for file in src/*/devcontainer-feature.json; do
+            id=${file#src/}
+            ids+=("${id%%/*}")
+          done
+          npx devcontainer features test -f "${ids[@]}" -i debian:sid
 
   test-global:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: "Install the devcontainer CLI from package-lock.json"
         run: npm ci
 
       - name: "Test the global scenarios"
         if: hashFiles('test/_global/scenarios.json') != ''
+        timeout-minutes: 25
         run: npm run test:global

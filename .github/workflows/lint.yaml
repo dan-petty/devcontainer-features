@@ -12,10 +12,12 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: "Install the devcontainer CLI from package-lock.json"
         run: |
@@ -38,21 +40,32 @@ jobs:
           fi
 
       # The release does not publish a version again. A change to src/<id>/ without a
-      # new version in devcontainer-feature.json is then never published.
+      # higher version in devcontainer-feature.json is then never published.
       - name: "Check the version of each changed Feature"
         if: github.event_name == 'pull_request'
         env:
           BASE: origin/${{ github.base_ref }}
         run: |
+          # Each command substitution has its own assignment, so errexit stops the step when it fails.
+          changed=$(git diff --name-only "$BASE...HEAD" -- src)
+          ids=$(printf '%s\n' "$changed" | grep -v '/README\.md$' | cut -d/ -f2 | sort -u)
           status=0
-          for id in $(git diff --name-only "$BASE...HEAD" -- src | grep -v '/README\.md$' | cut -d/ -f2 | sort -u); do
+          while IFS= read -r id; do
             file="src/$id/devcontainer-feature.json"
-            [ -f "$file" ] || continue
-            new=$(jq -r .version "$file")
-            old=$(git show "$BASE:$file" 2>/dev/null | jq -r .version)
-            if [ "$new" = "$old" ]; then
-              echo "::error file=$file::src/$id changed, but its version $new is the same as on $BASE. Increase the version."
+            if [ -z "$id" ] || [ ! -f "$file" ]; then
+              continue
+            fi
+            new=$(jq -er .version "$file")
+            if ! git cat-file -e "$BASE:$file" 2>/dev/null; then
+              echo "src/$id is a new Feature at version $new."
+              continue
+            fi
+            old_json=$(git show "$BASE:$file")
+            old=$(jq -er .version <<< "$old_json")
+            highest=$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n 1)
+            if [ "$new" = "$old" ] || [ "$highest" != "$new" ]; then
+              echo "::error file=$file::src/$id changed, but its version $new is not higher than $old on $BASE. Increase the version."
               status=1
             fi
-          done
+          done <<< "$ids"
           exit "$status"

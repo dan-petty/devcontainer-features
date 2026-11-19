@@ -25,17 +25,21 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: "Install the devcontainer CLI from package-lock.json"
         run: npm ci
 
       - name: "Test '${{ inputs.features }}' on '${{ inputs.baseImage }}'"
+        timeout-minutes: 50
         env:
           FEATURES: ${{ inputs.features }}
           BASE_IMAGE: ${{ inputs.baseImage }}
           LOG_LEVEL: ${{ inputs.logLevel }}
         run: |
           read -ra ids <<< "$FEATURES"
-          npx devcontainer features test --features "${ids[@]}" --base-image "$BASE_IMAGE" --log-level "$LOG_LEVEL" .
+          npx devcontainer features test --features "${ids[@]}" --base-image "$BASE_IMAGE" --log-level "$LOG_LEVEL"

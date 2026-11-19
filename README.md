@@ -4,7 +4,7 @@ This repository holds [Dev Container Features](https://containers.dev/implemento
 
 ## Purpose
 
-Most Features of `devcontainers/features` install on `debian:sid` as they are. The two Docker Features do not install: `docker-in-docker` and `docker-outside-of-docker` stop on the codename `forky`, and the Docker apt repository has no suite for `forky` or `sid`. This collection gives two Podman Features in their place:
+A check on 2026-11-19 installed 12 of the 28 Features of `devcontainers/features` on `debian:sid`, and also the `claude-code` Feature of `anthropics/devcontainer-features`. The check did not include the other 16 Features. [Upstream Features that work on debian:sid](#upstream-features-that-work-on-debiansid) gives the result. The two Docker Features do not install: `docker-in-docker` and `docker-outside-of-docker` stop on the codename `forky`, and the Docker apt repository has no suite for `forky` or `sid`. This collection gives two Podman Features in their place:
 
 - `podman-in-podman` runs a Podman engine in the dev container.
 - `podman-outside-podman` gives the dev container a client for the Podman engine of the host.
