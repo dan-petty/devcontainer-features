@@ -1,0 +1,43 @@
+{
+    "id": "podman-outside-podman",
+    "version": "1.0.0",
+    "name": "Podman outside of Podman",
+    "description": "Gives the dev container a client for the Podman engine of the host, through the bind-mounted directory of the host's Podman API socket. No engine runs in the container.",
+    "documentationURL": "https://github.com/dan-petty/devcontainer-features/tree/main/src/podman-outside-podman",
+    "options": {
+        "compose": {
+            "type": "string",
+            "enum": [
+                "podman-compose",
+                "none"
+            ],
+            "default": "podman-compose",
+            "description": "Compose tool. podman-compose runs the podman command, which uses the host engine. It is the compose provider of 'podman compose' and, with dockerCompat, of 'docker compose'."
+        },
+        "dockerCompat": {
+            "type": "boolean",
+            "default": false,
+            "description": "Install podman-docker (a docker command that runs podman, here as a client of the host engine) and link /var/run/docker.sock to the client socket /run/podman/podman.sock. No Docker CLI is installed. When docker-in-docker, docker-outside-of-docker or a different docker command is present, the install skips this option."
+        }
+    },
+    "mounts": [
+        {
+            "source": "${localEnv:XDG_RUNTIME_DIR:/run/user/1000}/podman",
+            "target": "/run/podman-host",
+            "type": "bind"
+        }
+    ],
+    "securityOpt": [
+        "label=disable"
+    ],
+    "containerEnv": {
+        "CONTAINER_HOST": "unix:///run/podman/podman.sock"
+    },
+    "entrypoint": "/usr/local/share/podman-init.sh",
+    "postStartCommand": "/usr/local/share/podman-check.sh",
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils",
+        "ghcr.io/devcontainers/features/docker-in-docker",
+        "ghcr.io/devcontainers/features/docker-outside-of-docker"
+    ]
+}

@@ -27,6 +27,10 @@ jobs:
       - name: "Check the shell scripts with shellcheck"
         run: git ls-files -z '*.sh' | xargs -0r shellcheck
 
+      # Both Podman Features source the same shared file. Change the two copies together.
+      - name: "Check that the two copies of podman-common.sh are the same"
+        run: cmp src/podman-in-podman/scripts/podman-common.sh src/podman-outside-podman/scripts/podman-common.sh
+
       # The README of each Feature comes from its devcontainer-feature.json and NOTES.md.
       # The pull request that changes them also commits the README that npm run docs writes.
       - name: "Check that each Feature README is current"

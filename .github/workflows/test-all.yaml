@@ -18,6 +18,8 @@ jobs:
     outputs:
       ids: ${{ steps.ids.outputs.ids }}
       count: ${{ steps.ids.outputs.count }}
+      together: ${{ steps.ids.outputs.together }}
+      together_count: ${{ steps.ids.outputs.together_count }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -30,6 +32,12 @@ jobs:
           echo "Features: $ids"
           echo "ids=$ids" >> "$GITHUB_OUTPUT"
           echo "count=$(jq length <<< "$ids")" >> "$GITHUB_OUTPUT"
+          # podman-in-podman and podman-outside-podman cannot be in one container, and
+          # podman-outside-podman needs the socket of a host engine. The combined test
+          # leaves podman-outside-podman out. The test job tests it alone.
+          together=$(jq -c 'map(select(. != "podman-outside-podman"))' <<< "$ids")
+          echo "together=$together" >> "$GITHUB_OUTPUT"
+          echo "together_count=$(jq length <<< "$together")" >> "$GITHUB_OUTPUT"
 
   # Each Feature alone: the generated test on debian:sid, the scenarios and the duplicate
   # test. A Feature that needs a package of another Feature fails here.
@@ -50,18 +58,25 @@ jobs:
       - name: "Install the devcontainer CLI from package-lock.json"
         run: npm ci
 
+      # podman-outside-podman is a client of the Podman engine of the host.
+      - name: "Start the Podman API services of the runner"
+        if: matrix.feature == 'podman-outside-podman'
+        timeout-minutes: 5
+        run: .github/scripts/start-podman-host.sh
+
       - name: "Test '${{ matrix.feature }}' alone on debian:sid"
         timeout-minutes: 50
         env:
           FEATURE: ${{ matrix.feature }}
         run: npx devcontainer features test -f "$FEATURE" -i debian:sid
 
-  # All Features in one container: with more than one id after -f, the CLI installs each
-  # given Feature in one container and runs the test.sh of each. Only the generated tests
-  # run here. The test job runs the scenarios, and the test-global job runs test/_global.
+  # All Features in one container, except podman-outside-podman: with more than one id
+  # after -f, the CLI installs each given Feature in one container and runs the test.sh of
+  # each. Only the generated tests run here. The test job runs the scenarios, and the
+  # test-global job runs test/_global.
   test-together:
     needs: [features]
-    if: fromJSON(needs.features.outputs.count) > 1
+    if: fromJSON(needs.features.outputs.together_count) > 1
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -72,10 +87,10 @@ jobs:
       - name: "Install the devcontainer CLI from package-lock.json"
         run: npm ci
 
-      - name: "Test every Feature together on debian:sid"
+      - name: "Test the Features together on debian:sid"
         timeout-minutes: 25
         env:
-          IDS: ${{ needs.features.outputs.ids }}
+          IDS: ${{ needs.features.outputs.together }}
         run: |
           mapfile -t ids < <(jq -r '.[]' <<< "$IDS")
           npx devcontainer features test -f "${ids[@]}" -i debian:sid --skip-scenarios --skip-duplicated

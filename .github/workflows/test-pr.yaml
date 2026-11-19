@@ -76,12 +76,22 @@ jobs:
       - name: "Install the devcontainer CLI from package-lock.json"
         run: npm ci
 
+      # podman-outside-podman is a client of the Podman engine of the host.
+      - name: "Start the Podman API services of the runner"
+        if: matrix.features == 'podman-outside-podman'
+        timeout-minutes: 5
+        run: .github/scripts/start-podman-host.sh
+
+      # Without XDG_RUNTIME_DIR, the default mount source of podman-outside-podman is
+      # /run/user/1000/podman, as on a host where the variable is not set.
       - name: "Generated tests for '${{ matrix.features }}' on '${{ matrix.baseImage }}'"
         timeout-minutes: 25
         env:
           FEATURE: ${{ matrix.features }}
           BASE_IMAGE: ${{ matrix.baseImage }}
-        run: npx devcontainer features test --skip-scenarios -f "$FEATURE" -i "$BASE_IMAGE"
+        run: |
+          unset XDG_RUNTIME_DIR
+          npx devcontainer features test --skip-scenarios -f "$FEATURE" -i "$BASE_IMAGE"
 
       # podman-in-podman and podman-outside-podman cannot be in one container. The install
       # of each one stops when the directory of the other one exists.
@@ -134,6 +144,11 @@ jobs:
             jq --arg image "$BASE_IMAGE" 'walk(if . == "debian:sid" then $image else . end)' "$file" > "$RUNNER_TEMP/scenarios.json"
             mv "$RUNNER_TEMP/scenarios.json" "$file"
           fi
+
+      - name: "Start the Podman API services of the runner"
+        if: matrix.features == 'podman-outside-podman'
+        timeout-minutes: 5
+        run: .github/scripts/start-podman-host.sh
 
       # The test job runs the duplicate test on the base image. Here it would run on the
       # default image of the CLI, ubuntu:focal.
@@ -197,6 +212,11 @@ jobs:
           printf '#!/bin/sh\nexec podman "$@"\n' > "$shim/docker"
           chmod +x "$shim/docker"
           echo "$shim" >> "$GITHUB_PATH"
+
+      - name: "Start the Podman API services of the runner"
+        if: matrix.features == 'podman-outside-podman'
+        timeout-minutes: 5
+        run: .github/scripts/start-podman-host.sh
 
       - name: "Keep-id scenarios of '${{ matrix.features }}' on '${{ matrix.baseImage }}' under rootless Podman"
         timeout-minutes: 25

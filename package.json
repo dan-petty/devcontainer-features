@@ -8,7 +8,7 @@
     "url": "https://github.com/dan-petty/devcontainer-features.git"
   },
   "scripts": {
-    "test": "devcontainer features test --base-image debian:sid",
+    "test": "devcontainer features test --base-image debian:sid --features $(ls src | grep -vx podman-outside-podman) && npm run test:global",
     "test:global": "devcontainer features test --global-scenarios-only",
     "docs": "devcontainer features generate-docs -p src -n dan-petty/devcontainer-features --github-owner dan-petty --github-repo devcontainer-features"
   },

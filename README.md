@@ -18,6 +18,7 @@ Each Feature pull request adds its row to this table.
 | Feature | Reference | Description |
 | --- | --- | --- |
 | [podman-in-podman](src/podman-in-podman) | `ghcr.io/dan-petty/devcontainer-features/podman-in-podman:1` | Runs a Podman engine in the dev container: rootless Podman for the remote user, rootful Podman through sudo. |
+| [podman-outside-podman](src/podman-outside-podman) | `ghcr.io/dan-petty/devcontainer-features/podman-outside-podman:1` | Gives the dev container a client for the Podman engine of the host, through the bind-mounted directory of the host socket. No engine runs in the container. |
 
 ## Upstream Features that work on debian:sid
 
