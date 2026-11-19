@@ -6,10 +6,12 @@
 # /proc/self/uid_map) is the ID map of the namespace. ID is the user's own ID (the uid
 # for /etc/subuid, the gid for /etc/subgid).
 #
-# When each range of USER in SUBID_FILE lies inside the IDs of MAP_FILE, the script
-# prints these ranges again. Otherwise, it prints the IDs of MAP_FILE from 1 to 65535
-# without ID. With the keep-id map "0 1 1000 / 1000 0 1 / 1001 1001 64536" and ID 1000,
-# that gives 1:999 and 1001:64535, the same ranges as the quay.io/podman/stable image.
+# The kernel maps a subordinate range only when the range lies inside one line (extent)
+# of MAP_FILE. When each range of USER in SUBID_FILE lies inside one extent, the script
+# prints these ranges again. Otherwise, it prints each extent of MAP_FILE, cut to the IDs
+# 1 to 65535 and without ID. With the keep-id map "0 1 1000 / 1000 0 1 / 1001 1001 64536"
+# and ID 1000, that gives 1:999 and 1001:64535, the same ranges as the
+# quay.io/podman/stable image. With ID 1001, it gives 1:999, 1000:1 and 1002:64534.
 set -e
 
 if [ "$#" -lt 2 ] || [ "$#" -gt 4 ]; then
@@ -30,17 +32,11 @@ fi
 # Each map line is "INSIDE OUTSIDE COUNT". Only the inside IDs are visible here.
 sort -n -k1,1 "$map_file" | awk -v user="$user" -v owner="$owner_uid" -v id="$id" \
     -v subid_file="$subid_file" '
-    # Merge the sorted inside ranges into maximal ranges [lo[i], hi[i]].
+    # The inside IDs of each extent, sorted: [lo[i], hi[i]].
     NF >= 3 {
-        start = $1 + 0
-        end = $1 + $3 - 1
-        if (n > 0 && start <= hi[n] + 1) {
-            if (end > hi[n]) hi[n] = end
-        } else {
-            n++
-            lo[n] = start
-            hi[n] = end
-        }
+        n++
+        lo[n] = $1 + 0
+        hi[n] = $1 + $3 - 1
     }
 
     function mapped(start, end,    i) {

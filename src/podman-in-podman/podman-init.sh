@@ -65,7 +65,13 @@ if [ "$user" != "root" ]; then
     chown "$uid:$gid" "$run_dir"
     chmod 0700 "$run_dir"
 
-    # d. The subordinate IDs must lie inside the ID map of this user namespace. A
+    # d. A new volume is owned by root. The image can also hold the directory with an
+    # old uid of the user: the Dev Containers CLI can change the uid after the build.
+    # 'podman system migrate' below writes to this directory.
+    mkdir -p "/var/lib/containers-rootless/$user"
+    chown "$uid:$gid" "/var/lib/containers-rootless/$user"
+
+    # e. The subordinate IDs must lie inside the ID map of this user namespace. A
     # container of rootless Podman with --userns=keep-id maps only about 65536 IDs.
     subids_changed=false
     update_subids() { # FILE ID MAP
@@ -80,7 +86,7 @@ if [ "$user" != "root" ]; then
             mv "$1.podman-init" "$1"
             subids_changed=true
             echo "(*) podman-init.sh: wrote the ranges of $user to $1:"
-            printf '    %s\n' "$wanted"
+            printf '%s\n' "$wanted" | sed 's/^/    /'
         fi
     }
     update_subids /etc/subuid "$uid" /proc/self/uid_map
@@ -89,10 +95,6 @@ if [ "$user" != "root" ]; then
         runuser -u "$user" -- env HOME="$home" XDG_RUNTIME_DIR="$run_dir" podman system migrate ||
             echo "(!) podman-init.sh: 'podman system migrate' failed for $user." >&2
     fi
-
-    # e. A new volume is owned by root.
-    mkdir -p "/var/lib/containers-rootless/$user"
-    chown "$uid:$gid" "/var/lib/containers-rootless/$user"
 fi
 
 # f. The API socket for docker-compose and the docker CLI.

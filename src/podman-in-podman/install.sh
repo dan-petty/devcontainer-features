@@ -40,9 +40,10 @@ fi
 mkdir -p "${SHARE_DIR}"
 
 # --no-install-recommends drops aardvark-dns (name resolution on Podman networks) and
-# ca-certificates (image pulls over TLS). netavark runs nft for rootful bridge networks.
+# ca-certificates (image pulls over TLS). For rootful bridge networks, netavark 1.9 and
+# later runs nft, and older netavark (ubuntu:noble has 1.4) runs iptables.
 packages=(
-    podman crun conmon netavark aardvark-dns nftables passt uidmap catatonit
+    podman crun conmon netavark aardvark-dns nftables iptables passt uidmap catatonit
     containers-storage golang-github-containers-common fuse-overlayfs ca-certificates
 )
 if [ "${BUILDAH}" = "true" ]; then
@@ -51,13 +52,25 @@ fi
 if [ "${SKOPEO}" = "true" ]; then
     packages+=(skopeo)
 fi
-if [ "${COMPOSE}" != "none" ]; then
-    packages+=("${COMPOSE}")
-fi
 
 export DEBIAN_FRONTEND=noninteractive
 rm -rf /var/lib/apt/lists/*
 apt-get update
+
+# Debian ships Compose version 2 as docker-compose. Ubuntu ships it as docker-compose-v2,
+# and its docker-compose package is Compose version 1, which imports the distutils that
+# Python 3.12 removed.
+case "${COMPOSE}" in
+    podman-compose) packages+=(podman-compose) ;;
+    docker-compose)
+        if apt-cache show docker-compose-v2 > /dev/null 2>&1; then
+            packages+=(docker-compose-v2)
+        else
+            packages+=(docker-compose)
+        fi
+        ;;
+esac
+
 apt-get install -y --no-install-recommends "${packages[@]}"
 
 # podman-docker conflicts with the Docker CLI packages. When another package has
@@ -90,14 +103,26 @@ EOF
 
 # Rootless storage goes to a volume, not to the overlay root file system or the home
 # directory. On the volume, rootless Podman uses native overlay and needs no /dev/fuse.
+# containers/storage 1.57 (debian:trixie) and 1.51 (ubuntu:noble) read no drop-in
+# directory, so the setting goes in /etc/containers/storage.conf. The file starts as a
+# copy of the file of the distribution, as in the quay.io/podman/stable image.
 if [ "${USERNAME}" != "root" ]; then
-    mkdir -p /etc/containers/storage.rootless.conf.d
-    cat > /etc/containers/storage.rootless.conf.d/50-podman-in-podman.conf << EOF
-# Written by the podman-in-podman Feature.
-[storage]
-rootless_storage_path = "/var/lib/containers-rootless/${USERNAME}"
-EOF
+    storage_conf=/etc/containers/storage.conf
+    if [ ! -f "${storage_conf}" ]; then
+        cp /usr/share/containers/storage.conf "${storage_conf}"
+    fi
+    sed -i -e '/^[[:space:]]*rootless_storage_path[[:space:]]*=/d' \
+        -e "/^\[storage\][[:space:]]*\$/a rootless_storage_path = \"/var/lib/containers-rootless/${USERNAME}\"" \
+        "${storage_conf}"
+    if ! grep -q '^rootless_storage_path = ' "${storage_conf}"; then
+        echo "(!) ${storage_conf} has no [storage] table: cannot set rootless_storage_path." >&2
+        exit 1
+    fi
     mkdir -p "/var/lib/containers-rootless/${USERNAME}"
+    # In its rootless network namespace, Podman 4 (ubuntu:noble) mounts a private
+    # directory on /var/lib/cni, or on /var/lib when /var/lib/cni is absent. On /var/lib,
+    # the mount hides the rootless storage, and Podman finds no user network.
+    mkdir -p /var/lib/cni
     chown "${USERNAME}:" "/var/lib/containers-rootless/${USERNAME}"
 fi
 

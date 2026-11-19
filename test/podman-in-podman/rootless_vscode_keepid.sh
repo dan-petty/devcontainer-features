@@ -9,6 +9,14 @@ source dev-container-features-test-lib
 
 uid=$(id -u)
 info_is() { [ "$(podman info --format "$1")" = "$2" ]; }
+# podman info of Podman 4.9 (ubuntu:noble) has no RootlessNetworkCmd.
+default_network_is_pasta() {
+    local id mode
+    id=$(podman create quay.io/libpod/alpine:latest true)
+    mode=$(podman inspect --format '{{.HostConfig.NetworkMode}}' "$id")
+    podman rm "$id" > /dev/null
+    [ "$mode" = pasta ]
+}
 runtime_dir_is_private() { [ "$(stat -c '%a %U' "/run/user/$uid")" = "700 vscode" ]; }
 # Each subuid range of vscode must lie inside one range of the uid map.
 subuid_inside_map() {
@@ -27,10 +35,9 @@ subuid_inside_map() {
 }
 
 check "user is vscode" test "$(id -un)" = vscode
-check "storage drop-in" grep -q 'rootless_storage_path = "/var/lib/containers-rootless/vscode"' /etc/containers/storage.rootless.conf.d/50-podman-in-podman.conf
 check "graph root on the volume" info_is '{{.Store.GraphRoot}}' /var/lib/containers-rootless/vscode
 check "native overlay" info_is '{{index .Store.GraphStatus "Native Overlay Diff"}}' true
-check "pasta" info_is '{{.Host.RootlessNetworkCmd}}' pasta
+check "pasta" default_network_is_pasta
 check "runtime directory" runtime_dir_is_private
 check "subuid inside the uid map" subuid_inside_map
 check "run hello" podman run --rm quay.io/podman/hello
