@@ -8,7 +8,12 @@ on:
       - "src/**"
 
 permissions:
-  contents: read
+  contents: read # read the Features
+
+# A second publish waits for the first, so that two runs do not push the same tags.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -16,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      packages: write
-      contents: write
+      packages: write # push the Features and the collection metadata to GHCR
+      contents: write # make the release tags through the REST API
     steps:
       # The action makes the release tags through the REST API with GITHUB_TOKEN, not with git push.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

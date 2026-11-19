@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: read # read the files and the git history
 
 jobs:
   lint:
@@ -40,7 +40,8 @@ jobs:
           fi
 
       # The release does not publish a version again. A change to src/<id>/ without a
-      # higher version in devcontainer-feature.json is then never published.
+      # higher version in devcontainer-feature.json is then never published. semver (from
+      # package-lock.json) compares the versions: 1.1.0 is higher than 1.1.0-rc.1.
       - name: "Check the version of each changed Feature"
         if: github.event_name == 'pull_request'
         env:
@@ -62,8 +63,7 @@ jobs:
             fi
             old_json=$(git show "$BASE:$file")
             old=$(jq -er .version <<< "$old_json")
-            highest=$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n 1)
-            if [ "$new" = "$old" ] || [ "$highest" != "$new" ]; then
+            if ! npx --no-install semver --include-prerelease --range ">$old" "$new" > /dev/null; then
               echo "::error file=$file::src/$id changed, but its version $new is not higher than $old on $BASE. Increase the version."
               status=1
             fi
