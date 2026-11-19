@@ -1,12 +1,7 @@
 {
-    "image": "mcr.microsoft.com/devcontainers/javascript-node:3-22",
-    "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-    },
-    "postCreateCommand": "npm install -g @devcontainers/cli",
-    "hostRequirements": {
-        "cpus": 4
-    },
+    "name": "devcontainer-features",
+    "image": "ghcr.io/dan-petty/devops-cli/devcontainer:v0.179.5@sha256:77f20df0017784a8514896685c452fc363c3e18eb99d3c3af8c7ef3dca9ec249",
+    "postCreateCommand": "npm ci",
     "customizations": {
         "vscode": {
             "extensions": [

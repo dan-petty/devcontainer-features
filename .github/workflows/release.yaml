@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "src/**"
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -13,10 +18,17 @@ jobs:
       packages: write
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: npm ci
+
+      # The action installs the newest CLI only when no devcontainer command is on PATH.
+      - name: "Put the locked devcontainer CLI on PATH"
+        run: echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: "Publish"
-        uses: devcontainers/action@v1
+        uses: devcontainers/action@bef2cf2d1a019b00b45e184f83035e01bd1972f3 # v1.4.4
         with:
           publish-features: "true"
           base-path-to-features: "./src"

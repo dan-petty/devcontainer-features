@@ -1,0 +1,56 @@
+name: "Lint"
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: npm ci
+
+      - name: "Check the shell scripts with shellcheck"
+        run: git ls-files -z '*.sh' | xargs -0r shellcheck
+
+      # The README of each Feature comes from its devcontainer-feature.json and NOTES.md.
+      # The pull request that changes them also commits the README that npm run docs writes.
+      - name: "Check that each Feature README is current"
+        if: hashFiles('src/*/devcontainer-feature.json') != ''
+        run: |
+          npm run docs
+          git add --intent-to-add src
+          if ! git diff --exit-code -- 'src/*/README.md'; then
+            echo "::error::A Feature README is not current. Run 'npm run docs' and commit the result."
+            exit 1
+          fi
+
+      # The release does not publish a version again. A change to src/<id>/ without a
+      # new version in devcontainer-feature.json is then never published.
+      - name: "Check the version of each changed Feature"
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          status=0
+          for id in $(git diff --name-only "$BASE...HEAD" -- src | grep -v '/README\.md$' | cut -d/ -f2 | sort -u); do
+            file="src/$id/devcontainer-feature.json"
+            [ -f "$file" ] || continue
+            new=$(jq -r .version "$file")
+            old=$(git show "$BASE:$file" 2>/dev/null | jq -r .version)
+            if [ "$new" = "$old" ]; then
+              echo "::error file=$file::src/$id changed, but its version $new is the same as on $BASE. Increase the version."
+              status=1
+            fi
+          done
+          exit "$status"

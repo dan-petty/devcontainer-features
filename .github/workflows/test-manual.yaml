@@ -3,26 +3,39 @@ on:
   workflow_dispatch:
     inputs:
       features:
-        description: "List of features to execute tests against"
+        description: "Feature ids to test, separated by spaces"
         required: true
-        default: "go dotnet"
       baseImage:
-        description: "Base image"
+        description: "Base image of the generated tests"
         required: true
-        default: "ubuntu:noble"
+        default: "debian:sid"
       logLevel:
-        description: "Log Level (info/debug/trace)"
+        description: "Log level"
         required: true
         default: "info"
+        type: choice
+        options:
+          - info
+          - debug
+          - trace
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: "Install latest devcontainer CLI"
-        run: npm install -g @devcontainers/cli
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: npm ci
 
-      - name: "Testing '${{ github.event.inputs.features }}' against '${{ github.event.inputs.baseImage }}'"
-        run: devcontainer features test --features ${{ github.event.inputs.features }} --base-image ${{ github.event.inputs.baseImage }} --log-level ${{ github.event.inputs.logLevel }} .
+      - name: "Test '${{ inputs.features }}' on '${{ inputs.baseImage }}'"
+        env:
+          FEATURES: ${{ inputs.features }}
+          BASE_IMAGE: ${{ inputs.baseImage }}
+          LOG_LEVEL: ${{ inputs.logLevel }}
+        run: |
+          read -ra ids <<< "$FEATURES"
+          npx devcontainer features test --features "${ids[@]}" --base-image "$BASE_IMAGE" --log-level "$LOG_LEVEL" .
