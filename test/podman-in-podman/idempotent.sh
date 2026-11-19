@@ -1,6 +1,7 @@
 #!/bin/bash
 # dockerCompat as vscode. A second run of the entrypoint, with sudo and as vscode, changes
 # nothing. After the API service stops, a new run starts it again with a new socket.
+# podman-check.sh does not accept the ready file of an earlier start.
 set -e
 
 # shellcheck source=/dev/null
@@ -56,5 +57,23 @@ check "new PID" test "$(cat "$pid_file")" != "$old_pid"
 check "socket is root:docker 660" socket_mode
 check "vscode reaches the socket" socket_is_rootful
 check "podman-check after the restart" /usr/local/share/podman-check.sh
+
+# A stop and a start of the container: the ready file of the last start stays, and it
+# holds the start time of the last PID 1. podman-check.sh waits until the entrypoint
+# writes the start time of the current PID 1.
+ready=/run/podman-in-podman/ready
+pid1_start_time() { sed 's/.*) //' /proc/1/stat | cut -d' ' -f20; }
+ready_is_current() { [ "$(cat "$ready")" = "$(pid1_start_time)" ]; }
+check_runs() { kill -0 "$check_pid"; }
+check "ready file holds the start time of PID 1" ready_is_current
+earlier_start=$(($(pid1_start_time) - 1))
+check "ready file of an earlier start" sudo sh -c "echo $earlier_start > $ready"
+/usr/local/share/podman-check.sh > /tmp/check.out 2>&1 &
+check_pid=$!
+sleep 3
+check "podman-check waits for the entrypoint" check_runs
+check "run the entrypoint" sudo /usr/local/share/podman-init.sh true
+check "podman-check passes after the entrypoint" wait "$check_pid"
+check "podman-check prints its line" grep '^podman-in-podman: rootless Podman' /tmp/check.out
 
 reportResults

@@ -29,13 +29,17 @@ check "no API service" no_api_service
 # The directory name is the compose project name.
 project="$(mktemp -d)/pinp"
 mkdir "$project"
+# As PID 1, sleep ignores SIGTERM. The init process (catatonit) stops it at once, so down
+# does not wait 10 seconds for each container.
 cat > "$project/compose.yaml" << 'COMPOSE'
 services:
   a:
     image: quay.io/libpod/alpine:latest
+    init: true
     command: sleep 600
   b:
     image: quay.io/libpod/alpine:latest
+    init: true
     command: sleep 600
 COMPOSE
 cd "$project"

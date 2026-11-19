@@ -16,11 +16,15 @@ fail() {
 # shellcheck source=/dev/null
 . "$CONFIG"
 
-# The Dev Containers CLI does not wait for the entrypoint.
+# The Dev Containers CLI does not wait for the entrypoint. After a stop and a start, the
+# marker of the last start can still be there, so the marker must hold the start time of
+# the current PID 1 (field 22 of /proc/1/stat, as in podman-init.sh).
+start_time=$(sed 's/.*) //' /proc/1/stat | cut -d' ' -f20)
+[ -n "$start_time" ] || fail "cannot read the start time of PID 1 in /proc/1/stat."
 tries=0
-while [ ! -f "$READY" ]; do
+until [ "$(cat "$READY" 2> /dev/null)" = "$start_time" ]; do
     if [ "$tries" -ge 120 ]; then
-        fail "the entrypoint did not end in 60 seconds."
+        fail "the entrypoint did not end in 60 seconds after this start."
     fi
     sleep 0.5
     tries=$((tries + 1))

@@ -12,6 +12,7 @@ SUBID_RANGES=/usr/local/share/podman-subid-ranges.sh
 RUN_DIR=/run/podman-in-podman
 # The Dev Containers CLI starts the entrypoints after the container prints "Container
 # started", so the setup can still run when a tool starts. The marker tells that it ended.
+# It holds the start time of PID 1, which is new at each start of the container.
 READY=$RUN_DIR/ready
 PID_FILE=$RUN_DIR/podman-service.pid
 LOG=$RUN_DIR/podman-service.log
@@ -121,7 +122,9 @@ service_runs() {
     case "$pid" in
         '' | *[!0-9]*) return 1 ;;
     esac
-    cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2> /dev/null) || return 1
+    # dash applies the redirections from left to right. With the input first, it prints
+    # its error for a missing file before stderr goes to /dev/null.
+    cmdline=$(tr '\0' ' ' 2> /dev/null < "/proc/$pid/cmdline") || return 1
     case "$cmdline" in
         "podman system service "*) return 0 ;;
     esac
@@ -155,6 +158,8 @@ if [ "${DOCKER_SOCK_LINK:-false}" = "true" ]; then
     ln -sfn "$SOCK" /var/run/docker.sock
 fi
 
-touch "$READY"
+# The start time of PID 1 is field 22 of /proc/1/stat. Field 2 can hold spaces, so the
+# fields count from its ")". podman-check.sh reads the same value.
+sed 's/.*) //' /proc/1/stat | cut -d' ' -f20 > "$READY"
 
 finish "$@"
