@@ -38,6 +38,8 @@ A check on 2026-11-19 installed these Features on `debian:sid`. They need no Fea
 | `ghcr.io/devcontainers/features/sshd:1` | Installs as is. |
 | `ghcr.io/anthropics/devcontainer-features/claude-code:1` | Installs only after `node:2`. Alone, it fails on `debian:sid`. |
 
+The `sid_usable` scenario in `test/_global` installs `common-utils`, `git`, `node`, `github-cli`, `copilot-cli` and `claude-code` together with `podman-in-podman` on `debian:sid`. It checks each tool and runs a rootless Podman container as `vscode`. The weekly run of `test-all.yaml` runs the scenario, so it fails when a change in `debian:sid` breaks one of these Features.
+
 `ghcr.io/devcontainers/features/docker-in-docker` and `ghcr.io/devcontainers/features/docker-outside-of-docker` do not install on `debian:sid`. Use the Podman Features of this collection.
 
 ## Usage
