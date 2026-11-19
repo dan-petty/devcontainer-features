@@ -1,0 +1,53 @@
+{
+    "id": "podman-in-podman",
+    "version": "1.0.0",
+    "name": "Podman in Podman",
+    "description": "Runs a Podman engine in the dev container. The remote user runs rootless Podman, and sudo runs rootful Podman.",
+    "documentationURL": "https://github.com/dan-petty/devcontainer-features/tree/main/src/podman-in-podman",
+    "options": {
+        "buildah": {
+            "type": "boolean",
+            "default": true,
+            "description": "Install buildah from the distribution archive."
+        },
+        "skopeo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Install skopeo from the distribution archive."
+        },
+        "compose": {
+            "type": "string",
+            "enum": [
+                "podman-compose",
+                "none"
+            ],
+            "default": "podman-compose",
+            "description": "Compose tool. podman-compose runs the podman command and needs no API service. It is the compose provider of 'podman compose' and, with dockerCompat, of 'docker compose'."
+        },
+        "dockerCompat": {
+            "type": "boolean",
+            "default": false,
+            "description": "Install podman-docker (a docker command that runs podman), start a rootful Podman API service at container start, and link /var/run/docker.sock to its socket (root:docker 0660). No Docker CLI is installed. When docker-in-docker, docker-outside-of-docker or a different docker command is present, the install skips this option."
+        }
+    },
+    "privileged": true,
+    "entrypoint": "/usr/local/share/podman-init.sh",
+    "postStartCommand": "/usr/local/share/podman-check.sh",
+    "mounts": [
+        {
+            "source": "podman-var-lib-containers-${devcontainerId}",
+            "target": "/var/lib/containers",
+            "type": "volume"
+        },
+        {
+            "source": "podman-rootless-${devcontainerId}",
+            "target": "/var/lib/containers-rootless",
+            "type": "volume"
+        }
+    ],
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils",
+        "ghcr.io/devcontainers/features/docker-in-docker",
+        "ghcr.io/devcontainers/features/docker-outside-of-docker"
+    ]
+}

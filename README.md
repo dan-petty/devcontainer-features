@@ -4,7 +4,7 @@ This repository holds [Dev Container Features](https://containers.dev/implemento
 
 ## Purpose
 
-A check on 2026-11-19 installed 12 of the 28 Features of `devcontainers/features` on `debian:sid`, and also the `claude-code` Feature of `anthropics/devcontainer-features`. The check did not include the other 16 Features. [Upstream Features that work on debian:sid](#upstream-features-that-work-on-debiansid) gives the result. The two Docker Features do not install: `docker-in-docker` and `docker-outside-of-docker` stop on the codename `forky`, and the Docker apt repository has no suite for `forky` or `sid`. This collection gives two Podman Features in their place:
+A check on 2026-11-19 tried 12 of the 28 Features of `devcontainers/features` on `debian:sid`, and also the `claude-code` Feature of `anthropics/devcontainer-features`. 10 of the 12 Features install. The check did not include the other 16 Features. [Upstream Features that work on debian:sid](#upstream-features-that-work-on-debiansid) gives the result. The two Docker Features do not install: `docker-in-docker` and `docker-outside-of-docker` stop on the codename `forky`, and the Docker apt repository has no suite for `forky` or `sid`. This collection gives two Podman Features in their place:
 
 - `podman-in-podman` runs a Podman engine in the dev container.
 - `podman-outside-podman` gives the dev container a client for the Podman engine of the host.
@@ -13,10 +13,11 @@ Each Feature comes in its own pull request.
 
 ## Features
 
-No Feature is published yet. Each Feature pull request adds its row to this table.
+Each Feature pull request adds its row to this table.
 
 | Feature | Reference | Description |
 | --- | --- | --- |
+| [podman-in-podman](src/podman-in-podman) | `ghcr.io/dan-petty/devcontainer-features/podman-in-podman:1` | Runs a Podman engine in the dev container: rootless Podman for the remote user, rootful Podman through sudo. |
 
 ## Upstream Features that work on debian:sid
 
