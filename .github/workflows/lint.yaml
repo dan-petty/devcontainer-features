@@ -18,7 +18,9 @@ jobs:
           fetch-depth: 0
 
       - name: "Install the devcontainer CLI from package-lock.json"
-        run: npm ci
+        run: |
+          npm ci
+          npx devcontainer --version
 
       - name: "Check the shell scripts with shellcheck"
         run: git ls-files -z '*.sh' | xargs -0r shellcheck
