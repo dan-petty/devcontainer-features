@@ -7,9 +7,15 @@ set -e
 SELF=/usr/local/share/podman-init.sh
 CONFIG=/usr/local/share/podman-in-podman/config
 SUBID_RANGES=/usr/local/share/podman-subid-ranges.sh
+# All runtime files are in RUN_DIR. /run is not a tmpfs under Docker, so the files of the
+# last start can still be there.
+RUN_DIR=/run/podman-in-podman
 # The Dev Containers CLI starts the entrypoints after the container prints "Container
 # started", so the setup can still run when a tool starts. The marker tells that it ended.
-READY=/run/podman-in-podman/ready
+READY=$RUN_DIR/ready
+PID_FILE=$RUN_DIR/podman-service.pid
+LOG=$RUN_DIR/podman-service.log
+SOCK=/run/podman/podman.sock
 
 finish() {
     if [ "$#" -gt 0 ]; then
@@ -30,6 +36,7 @@ fi
 user=${PODMAN_USER:-root}
 
 # The marker of an earlier start is not valid for this start.
+mkdir -p "$RUN_DIR"
 rm -f "$READY"
 
 # a. Make the root mount shared, as moby hack/dind does. Rootless Podman otherwise
@@ -103,38 +110,51 @@ if [ "$user" != "root" ]; then
     fi
 fi
 
-# f. The API socket for docker-compose and the docker CLI.
-if [ "${PODMAN_SOCKET:-false}" = "true" ]; then
-    if [ "$user" = "root" ]; then
-        sock_dir=/run/podman
-    else
-        sock_dir=$run_dir/podman
-    fi
-    sock=$sock_dir/podman.sock
-    pid_file=$sock_dir/podman-init.pid
-    if ! { [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2> /dev/null; }; then
-        mkdir -p "$sock_dir"
+# f. dockerCompat: the rootful Podman API service, as the dockerd of docker-in-docker.
+# The group docker can use its socket. After a stop and a start of the container, the
+# PID file and the socket of the last start can still be there, and the PID can now
+# belong to a different process. So the service runs only when the command line of that
+# PID is the service.
+service_runs() {
+    [ -f "$PID_FILE" ] || return 1
+    pid=$(cat "$PID_FILE")
+    case "$pid" in
+        '' | *[!0-9]*) return 1 ;;
+    esac
+    cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2> /dev/null) || return 1
+    case "$cmdline" in
+        "podman system service "*) return 0 ;;
+    esac
+    return 1
+}
+if [ "${DOCKER_SOCK_LINK:-false}" = "true" ]; then
+    if ! service_runs; then
+        # With the old socket in place, the wait below ends at once, and chgrp changes the
+        # old file. The new service then makes its socket root:root 0600 again.
+        rm -f "$SOCK" "$PID_FILE"
+        mkdir -p "${SOCK%/*}"
+        chmod 0755 "${SOCK%/*}"
         # shellcheck disable=SC2016 # sh -c expands $$, $1 and $2.
-        service='echo $$ > "$1" && exec podman system service --time=0 "unix://$2"'
-        if [ "$user" = "root" ]; then
-            setsid -f sh -c "$service" sh "$pid_file" "$sock" < /dev/null > /tmp/podman-service.log 2>&1
-        else
-            chown "$uid:$gid" "$sock_dir"
-            setsid -f runuser -u "$user" -- env HOME="$home" XDG_RUNTIME_DIR="$run_dir" \
-                sh -c "$service" sh "$pid_file" "$sock" < /dev/null > /tmp/podman-service.log 2>&1
-        fi
+        setsid -f sh -c 'echo $$ > "$1" && exec podman system service --time=0 "unix://$2"' \
+            sh "$PID_FILE" "$SOCK" < /dev/null > "$LOG" 2>&1
         tries=0
-        while [ ! -S "$sock" ] && [ "$tries" -lt 20 ]; do
+        while [ ! -S "$SOCK" ] && [ "$tries" -lt 60 ]; do
             sleep 0.5
             tries=$((tries + 1))
         done
+        if [ -S "$SOCK" ]; then
+            # Podman makes the socket root:root 0600.
+            chgrp docker "$SOCK"
+            chmod 0660 "$SOCK"
+        else
+            echo "(!) podman-init.sh: the Podman API service did not start in 30 seconds. See $LOG." >&2
+        fi
     fi
-    if [ "${PODMAN_DOCKER_LINK:-false}" = "true" ]; then
-        ln -sfn "$sock" /var/run/docker.sock
-    fi
+    # The tmpfiles.d rule of podman-docker names the same link, but the image has no
+    # systemd-tmpfiles.
+    ln -sfn "$SOCK" /var/run/docker.sock
 fi
 
-mkdir -p "${READY%/*}"
 touch "$READY"
 
 finish "$@"

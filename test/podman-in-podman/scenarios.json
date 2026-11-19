@@ -52,7 +52,7 @@
             "podman-in-podman": {}
         }
     },
-    "compose_docker": {
+    "docker_compat": {
         "image": "debian:sid",
         "remoteUser": "vscode",
         "features": {
@@ -63,7 +63,6 @@
                 "upgradePackages": false
             },
             "podman-in-podman": {
-                "compose": "docker-compose",
                 "dockerCompat": true
             }
         }

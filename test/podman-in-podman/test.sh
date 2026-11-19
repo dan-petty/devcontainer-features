@@ -5,8 +5,7 @@ set -e
 # shellcheck source=/dev/null
 source dev-container-features-test-lib
 
-# The CLI can start the test before the entrypoint of the Feature ends.
-check "entrypoint done" timeout 60 sh -c 'until [ -f /run/podman-in-podman/ready ]; do sleep 0.5; done'
+check "podman-check" /usr/local/share/podman-check.sh
 
 absent() { ! command -v "$1"; }
 not_installed() { ! dpkg -s "$1" > /dev/null 2>&1; }
@@ -23,9 +22,12 @@ check "podman" podman --version
 check "buildah" buildah --version
 check "skopeo" skopeo --version
 check "podman-compose" podman-compose --version
+check "no docker command" absent docker
 check "no docker-compose" absent docker-compose
 check "no podman-docker" not_installed podman-docker
 check "containers.conf drop-in" test -f /etc/containers/containers.conf.d/50-podman-in-podman.conf
+check "compose drop-in" test -f /etc/containers/containers.conf.d/50-podman-in-podman-compose.conf
+check "no docker.sock link" test ! -L /var/run/docker.sock
 check "cgroups v2" info_is '{{.Host.CgroupsVersion}}' v2
 check "netavark" info_is '{{.Host.NetworkBackend}}' netavark
 check "crun" info_is '{{.Host.OCIRuntime.Name}}' crun

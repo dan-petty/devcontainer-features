@@ -5,6 +5,8 @@ set -e
 # shellcheck source=/dev/null
 source dev-container-features-test-lib
 
+check "podman-check" /usr/local/share/podman-check.sh
+
 keepid=$(printf 'vscode:1:999\nvscode:1001:64535')
 # With uid 1001 (ubuntu:noble keeps 1000 for the user ubuntu), each range stays inside one
 # extent of the map. The kernel refuses a range that crosses two extents.
