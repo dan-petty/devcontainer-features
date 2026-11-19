@@ -1,0 +1,71 @@
+name: "Lint"
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: |
+          npm ci
+          npx devcontainer --version
+
+      - name: "Check the shell scripts with shellcheck"
+        run: git ls-files -z '*.sh' | xargs -0r shellcheck
+
+      # The README of each Feature comes from its devcontainer-feature.json and NOTES.md.
+      # The pull request that changes them also commits the README that npm run docs writes.
+      - name: "Check that each Feature README is current"
+        if: hashFiles('src/*/devcontainer-feature.json') != ''
+        run: |
+          npm run docs
+          git add --intent-to-add src
+          if ! git diff --exit-code -- 'src/*/README.md'; then
+            echo "::error::A Feature README is not current. Run 'npm run docs' and commit the result."
+            exit 1
+          fi
+
+      # The release does not publish a version again. A change to src/<id>/ without a
+      # higher version in devcontainer-feature.json is then never published.
+      - name: "Check the version of each changed Feature"
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          # Each command substitution has its own assignment, so errexit stops the step when it fails.
+          changed=$(git diff --name-only "$BASE...HEAD" -- src)
+          ids=$(printf '%s\n' "$changed" | grep -v '/README\.md$' | cut -d/ -f2 | sort -u)
+          status=0
+          while IFS= read -r id; do
+            file="src/$id/devcontainer-feature.json"
+            if [ -z "$id" ] || [ ! -f "$file" ]; then
+              continue
+            fi
+            new=$(jq -er .version "$file")
+            if ! git cat-file -e "$BASE:$file" 2>/dev/null; then
+              echo "src/$id is a new Feature at version $new."
+              continue
+            fi
+            old_json=$(git show "$BASE:$file")
+            old=$(jq -er .version <<< "$old_json")
+            highest=$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n 1)
+            if [ "$new" = "$old" ] || [ "$highest" != "$new" ]; then
+              echo "::error file=$file::src/$id changed, but its version $new is not higher than $old on $BASE. Increase the version."
+              status=1
+            fi
+          done <<< "$ids"
+          exit "$status"

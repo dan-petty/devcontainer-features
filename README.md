@@ -1,115 +1,80 @@
-# Development Container Features
+# Dev Container Features for debian:sid
 
-<table style="width: 100%; border-style: none;"><tr>
-<td style="width: 140px; text-align: center;"><a href="https://github.com/devcontainers"><img width="128px" src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/78c9587b995299d5bfc007a0077773556ecb0994/assets/Cube/SVG/ic_fluent_cube_32_filled.svg" alt="devcontainers organization logo"/></a></td>
-<td>
-<strong>Development Container 'Features'</strong><br />
-<i>A set of simple and reusable Features. Quickly add a language/tool/CLI to a development container.
-</td>
-</tr></table>
+This repository holds [Dev Container Features](https://containers.dev/implementors/features/) that make `debian:sid` usable as a dev container image. It uses the format of [devcontainers/features](https://github.com/devcontainers/features).
 
-'Features' are self-contained units of installation code and development container configuration. Features are designed
-to install atop a wide-range of base container images.
+## Purpose
 
-Missing a CLI or language in your otherwise _perfect_ container image? Add the relevant Feature to the `features`
-property of a [`devcontainer.json`](https://containers.dev/implementors/json_reference/#general-properties). A
-[tool supporting the dev container specification](https://containers.dev/supporting) is required to build a development
-container.
+A check on 2026-11-19 installed 12 of the 28 Features of `devcontainers/features` on `debian:sid`, and also the `claude-code` Feature of `anthropics/devcontainer-features`. The check did not include the other 16 Features. [Upstream Features that work on debian:sid](#upstream-features-that-work-on-debiansid) gives the result. The two Docker Features do not install: `docker-in-docker` and `docker-outside-of-docker` stop on the codename `forky`, and the Docker apt repository has no suite for `forky` or `sid`. This collection gives two Podman Features in their place:
 
-You may learn about Features at [containers.dev](https://containers.dev/implementors/features/), which is the website for the dev container specification.
+- `podman-in-podman` runs a Podman engine in the dev container.
+- `podman-outside-podman` gives the dev container a client for the Podman engine of the host.
+
+Each Feature comes in its own pull request.
+
+## Features
+
+No Feature is published yet. Each Feature pull request adds its row to this table.
+
+| Feature | Reference | Description |
+| --- | --- | --- |
+
+## Upstream Features that work on debian:sid
+
+A check on 2026-11-19 installed these Features on `debian:sid`. They need no Feature from this collection.
+
+| Feature | Note |
+| --- | --- |
+| `ghcr.io/devcontainers/features/common-utils:2` | Installs as is. |
+| `ghcr.io/devcontainers/features/copilot-cli:1` | Installs as is. |
+| `ghcr.io/devcontainers/features/desktop-lite:1` | Installs as is. |
+| `ghcr.io/devcontainers/features/git:1` | Installs as is, with `os-provided` and with `latest`. |
+| `ghcr.io/devcontainers/features/git-lfs:1` | Installs the GitHub release, because its apt list has no `sid`. |
+| `ghcr.io/devcontainers/features/github-cli:1` | Installs as is. |
+| `ghcr.io/devcontainers/features/kubectl-helm-minikube:1` | Installs as is. |
+| `ghcr.io/devcontainers/features/node:2` | Installs as is. |
+| `ghcr.io/devcontainers/features/python:1` | Installs as is with `os-provided`. The check did not build Python from source. |
+| `ghcr.io/devcontainers/features/sshd:1` | Installs as is. |
+| `ghcr.io/anthropics/devcontainer-features/claude-code:1` | Installs only after `node:2`. Alone, it fails on `debian:sid`. |
+
+`ghcr.io/devcontainers/features/docker-in-docker` and `ghcr.io/devcontainers/features/docker-outside-of-docker` do not install on `debian:sid`. Use the Podman Features of this collection.
 
 ## Usage
 
-To reference a Feature from this repository, add the desired Features to a `devcontainer.json`. Each Feature has a `README.md` that shows how to reference the Feature and which options are available for that Feature.
-
-The example below installs the `go` and `docker-in-docker` declared in the [`./src`](./src) directory of this
-repository.
-
-See the relevant Feature's README for supported options.
+Add a Feature to the `features` of your `devcontainer.json`, with its major version as the tag:
 
 ```jsonc
-"name": "my-project-devcontainer",
-"image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Any generic, debian-based image.
-"features": {
-    "ghcr.io/devcontainers/features/go:1": {
-        "version": "1.18"
-    },
-    "ghcr.io/devcontainers/features/docker-in-docker:1": {
-        "version": "latest",
-        "moby": true
-    }
+{
+  "image": "debian:sid",
+  "features": {
+    "ghcr.io/dan-petty/devcontainer-features/<id>:1": {}
+  }
 }
 ```
 
-The `:latest` version annotation is added implicitly if omitted. To pin to a specific package version
-([example](https://github.com/devcontainers/features/pkgs/container/features/go/versions)), append it to the end of the
-Feature. Features follow semantic versioning conventions, so you can pin to a major version `:1`, minor version `:1.0`, or patch version `:1.0.0` by specifying the appropriate label.
+The release publishes each Feature to `ghcr.io/dan-petty/devcontainer-features/<id>` with the tags `1`, `1.0`, `1.0.0` and `latest`. The collection metadata goes to `ghcr.io/dan-petty/devcontainer-features:latest`.
 
-```jsonc
-"features": {
-    "ghcr.io/devcontainers/features/go:1.0.0": {
-        "version": "1.18"
-    }
-}
+## Layout
+
+```text
+src/<id>/devcontainer-feature.json   metadata and options of the Feature
+src/<id>/install.sh                  runs as root when the image is built
+src/<id>/NOTES.md                    optional text for the README of the Feature
+src/<id>/README.md                   written by `npm run docs`, do not edit
+test/<id>/test.sh                    test of the default options
+test/<id>/scenarios.json             optional scenarios, with one <scenario>.sh for each
+test/_global/                        scenarios that combine Features
 ```
 
-The [devcontainer CLI reference implementation](https://github.com/devcontainers/cli) (or a
-[supporting tool](https://containers.dev/supporting)) can be used to build a project's dev container declaring
-Features.
+The folder name `<id>` must be the same as the `id` in `devcontainer-feature.json`. [CONTRIBUTING.md](CONTRIBUTING.md) gives the rules and the test commands.
 
-```bash
-git clone <my-project-with-devcontainer>
-devcontainer build --workspace-folder <path-to-my-project-with-devcontainer>
-```
+## Specification
 
-## Repo Structure
+- [Dev Container Features reference](https://containers.dev/implementors/features/)
+- [Distribution of Features](https://containers.dev/implementors/features-distribution/)
+- [Best practices for Feature authors](https://containers.dev/guide/feature-authoring-best-practices)
+- [Test command of the Dev Containers CLI](https://github.com/devcontainers/cli/blob/main/docs/features/test.md)
+- [devcontainers/action](https://github.com/devcontainers/action), which validates and publishes the Features
 
-```
-.
-├── README.md
-├── src
-│   ├── dotnet
-│   │   ├── devcontainer-feature.json
-│   │   └── install.sh
-│   ├── go
-│   │   ├── devcontainer-feature.json
-│   │   └── install.sh
-|   ├── ...
-│   │   ├── devcontainer-feature.json
-│   │   └── install.sh
-├── test
-│   ├── dotnet
-│   │   └── test.sh
-│   ├── go
-|   |   ├── scenarios.json
-|   |   ├── test_scenario_1.json
-│   |   └── test.sh
-|   ├── ...
-│   │   └── test.sh
-...
-```
+## License
 
--   [`src`](src) - A collection of subfolders, each declaring a Feature. Each subfolder contains at least a
-    `devcontainer-feature.json` and an `install.sh` script.
--   [`test`](test) - Mirroring `src`, a folder-per-feature with at least a `test.sh` script. The
-    [`devcontainer` CLI](https://github.com/devcontainers/cli) will execute
-    [these tests in CI](https://github.com/devcontainers/features/blob/main/.github/workflows/test-all.yaml).
-
-## Contributions
-
-### Creating your own collection of Features
-
-The [Feature distribution specification](https://containers.dev/implementors/features-distribution/) outlines a pattern for community members and organizations to self-author Features in repositories they control.
-
-A template repo [`devcontainers/feature-template`](https://github.com/devcontainers/feature-template) and [GitHub Action](https://github.com/devcontainers/action) are available to help bootstrap self-authored Features.
-
-We are eager to hear your feedback on self-authoring!  Please provide comments and feedback on [spec issue #70](https://github.com/devcontainers/spec/issues/70).
-
-### Contributing to this repository
-
-This repository will accept improvement and bug fix contributions related to the
-[current set of maintained Features](./src).
-
-🤝 You can read more about how to contribute in [`CONTRIBUTING.md`]. ❤️
-
-[`CONTRIBUTING.md`]: CONTRIBUTING.md
+MIT. See [LICENSE](LICENSE). This repository started as a fork of `devcontainers/features`, so the license keeps the copyright line of Microsoft Corporation.

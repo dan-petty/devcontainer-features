@@ -1,0 +1,18 @@
+{
+  "name": "devcontainer-features",
+  "private": true,
+  "description": "Dev Container Features that make debian:sid usable",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dan-petty/devcontainer-features.git"
+  },
+  "scripts": {
+    "test": "devcontainer features test --base-image debian:sid",
+    "test:global": "devcontainer features test --global-scenarios-only",
+    "docs": "devcontainer features generate-docs -p src -n dan-petty/devcontainer-features --github-owner dan-petty --github-repo devcontainer-features"
+  },
+  "devDependencies": {
+    "@devcontainers/cli": "0.90.0"
+  }
+}

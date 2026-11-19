@@ -2,131 +2,133 @@ name: "PR - Test Updated Features"
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      features: ${{ steps.filter.outputs.changes }}
+      features: ${{ steps.ids.outputs.features || '[]' }}
     steps:
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
+          list-files: json
           filters: |
-            anaconda: ./**/anaconda/**
-            aws-cli: ./**/aws-cli/**
-            azure-cli: ./**/azure-cli/**
-            common-utils: ./**/common-utils/**
-            conda: ./**/conda/**
-            copilot-cli: ./**/copilot-cli/**
-            desktop-lite: ./**/desktop-lite/**
-            docker-outside-of-docker: ./**/docker-outside-of-docker/**
-            docker-in-docker: ./**/docker-in-docker/**
-            dotnet: ./**/dotnet/**
-            git: ./**/git/**
-            git-lfs: ./**/git-lfs/**
-            github-cli: ./**/github-cli/**
-            go: ./**/go/**
-            hugo: ./**/hugo/**
-            java: ./**/java/**
-            kubectl-helm-minikube: ./**/kubectl-helm-minikube/**
-            node: ./**/node/**
-            nvidia-cuda: ./**/nvidia-cuda/**
-            oryx: ./**/oryx/**
-            php: ./**/php/**
-            powershell: ./**/powershell/**
-            python: ./**/python/**
-            ruby: ./**/ruby/**
-            rust: ./**/rust/**
-            sshd: ./**/sshd/**
-            terraform: ./**/terraform/**
-            nix: ./**/nix/**
+            features:
+              - "src/**"
+              - "test/**"
+
+      # The second part of a changed path src/<id>/... or test/<id>/... is the Feature id,
+      # so a new Feature needs no edit here. An id without src/<id>/devcontainer-feature.json
+      # (a removed Feature, test/_global) gives no test.
+      - name: "Get the ids of the changed Features"
+        id: ids
+        if: steps.filter.outputs.features == 'true'
+        env:
+          FILES: ${{ steps.filter.outputs.features_files }}
+        run: |
+          candidates=$(jq -r '[.[] | split("/") | select(length > 2) | .[1]] | unique | .[]' <<< "$FILES")
+          ids=()
+          while IFS= read -r id; do
+            if [ -n "$id" ] && [ -f "src/$id/devcontainer-feature.json" ]; then
+              ids+=("$id")
+            fi
+          done <<< "$candidates"
+          features=$(jq -cn '$ARGS.positional' --args "${ids[@]}")
+          echo "Changed Features: $features"
+          echo "features=$features" >> "$GITHUB_OUTPUT"
 
   test:
     needs: [detect-changes]
+    if: needs.detect-changes.outputs.features != '[]'
     runs-on: ubuntu-latest
-    continue-on-error: true
-    strategy:
-      matrix:
-        features: ${{ fromJSON(needs.detect-changes.outputs.features) }}
-        baseImage:
-          [
-            "ubuntu:jammy",
-            "debian:12",
-            "mcr.microsoft.com/devcontainers/base:ubuntu",
-            "mcr.microsoft.com/devcontainers/base:debian",
-            "mcr.microsoft.com/devcontainers/base:noble"
-          ]
-        exclude:
-          - features: oryx
-            baseImage: ubuntu:jammy
-          - features: oryx
-            baseImage: mcr.microsoft.com/devcontainers/base:ubuntu
-          - features: docker-in-docker
-            baseImage: mcr.microsoft.com/devcontainers/base:debian         
-          - features: docker-outside-of-docker
-            baseImage: mcr.microsoft.com/devcontainers/base:debian
-          - features: docker-in-docker
-            baseImage: mcr.microsoft.com/devcontainers/base:ubuntu
-          - features: docker-outside-of-docker
-            baseImage: mcr.microsoft.com/devcontainers/base:ubuntu
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: "Install latest devcontainer CLI"
-        run: npm install -g @devcontainers/cli
-
-      - name: "Generating tests for '${{ matrix.features }}' against '${{ matrix.baseImage }}'"
-        run: devcontainer features test  --skip-scenarios -f ${{ matrix.features }} -i ${{ matrix.baseImage }} .
-
-  test-scenarios:
-    needs: [detect-changes]
-    runs-on: devcontainer-image-builder-ubuntu
-    continue-on-error: true
-    strategy:
-      matrix:
-        features: ${{ fromJSON(needs.detect-changes.outputs.features) }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: "Install latest devcontainer CLI"
-        run: npm install -g @devcontainers/cli
-
-      - name: "Exclude iptables-isolation scenarios from docker-in-docker (run in separate 'iptables-isolation' job)"
-        if: matrix.features == 'docker-in-docker'
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          sed 's://.*$::' test/docker-in-docker/scenarios.json \
-            | jq 'del(.docker_with_default_iptables, .docker_with_default_iptables_ubuntu)' \
-            > test/docker-in-docker/scenarios.json.tmp
-          mv test/docker-in-docker/scenarios.json.tmp test/docker-in-docker/scenarios.json
-
-      - name: "Testing '${{ matrix.features }}' scenarios"
-        run: devcontainer features test -f ${{ matrix.features }} --skip-autogenerated  .
-
-  iptables-isolation:
-    needs: [detect-changes]
-    if: contains(fromJSON(needs.detect-changes.outputs.features), 'docker-in-docker')
-    runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        scenario:
-          - docker_with_default_iptables
-          - docker_with_default_iptables_ubuntu
+        features: ${{ fromJSON(needs.detect-changes.outputs.features) }}
+        baseImage: ["debian:sid"]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - name: "Install latest devcontainer CLI"
-        run: npm install -g @devcontainers/cli
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: npm ci
 
-      - name: "Isolate scenario '${{ matrix.scenario }}'"
+      - name: "Generated tests for '${{ matrix.features }}' on '${{ matrix.baseImage }}'"
+        timeout-minutes: 25
+        env:
+          FEATURE: ${{ matrix.features }}
+          BASE_IMAGE: ${{ matrix.baseImage }}
+        run: npx devcontainer features test --skip-scenarios -f "$FEATURE" -i "$BASE_IMAGE"
+
+  test-scenarios:
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.features != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ${{ fromJSON(needs.detect-changes.outputs.features) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: npm ci
+
+      - name: "Scenarios of '${{ matrix.features }}'"
+        timeout-minutes: 25
+        env:
+          FEATURE: ${{ matrix.features }}
+        run: npx devcontainer features test -f "$FEATURE" --skip-autogenerated
+
+  # The CLI picks its Podman code path when `docker -v` names Podman. Then it starts
+  # a container with a non-root remote user with --userns=keep-id. The shim gives the
+  # runner's rootless Podman the name docker. Only scenarios with "keepid" in their
+  # name run here. They also run in test-scenarios under Docker.
+  podman-host:
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.features != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ${{ fromJSON(needs.detect-changes.outputs.features) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: npm ci
+
+      - name: "Put a docker shim to Podman first on PATH"
         run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          sed 's://.*$::' test/docker-in-docker/scenarios.json \
-            | jq '{ "${{ matrix.scenario }}": .["${{ matrix.scenario }}"] }' \
-            > test/docker-in-docker/scenarios.json.tmp
-          mv test/docker-in-docker/scenarios.json.tmp test/docker-in-docker/scenarios.json
+          shim="$RUNNER_TEMP/podman-shim"
+          mkdir -p "$shim"
+          printf '#!/bin/sh\nexec podman "$@"\n' > "$shim/docker"
+          chmod +x "$shim/docker"
+          echo "$shim" >> "$GITHUB_PATH"
 
-      - name: "Testing docker-in-docker scenario '${{ matrix.scenario }}'"
-        run: devcontainer features test --features docker-in-docker --filter ${{ matrix.scenario }} --skip-autogenerated  .
+      - name: "Keep-id scenarios of '${{ matrix.features }}' under rootless Podman"
+        timeout-minutes: 25
+        env:
+          FEATURE: ${{ matrix.features }}
+        run: |
+          docker -v
+          npx devcontainer features test -f "$FEATURE" --skip-autogenerated --skip-duplicated --filter keepid

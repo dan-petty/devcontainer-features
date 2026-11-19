@@ -4,19 +4,38 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "src/**"
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       packages: write
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      # The action makes the release tags through the REST API with GITHUB_TOKEN, not with git push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
+      - name: "Install the devcontainer CLI from package-lock.json"
+        run: npm ci
+
+      # The action installs the newest CLI only when no devcontainer command is on PATH.
+      - name: "Put the locked devcontainer CLI on PATH"
+        run: echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+
+      # The paths filter also matches deleted files under src/. The action fails on a
+      # missing or empty src folder, so a push that leaves no Feature publishes nothing.
       - name: "Publish"
-        uses: devcontainers/action@v1
+        if: hashFiles('src/*/devcontainer-feature.json') != ''
+        uses: devcontainers/action@bef2cf2d1a019b00b45e184f83035e01bd1972f3 # v1.4.4
         with:
           publish-features: "true"
           base-path-to-features: "./src"
