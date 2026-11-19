@@ -7,6 +7,9 @@ set -e
 # shellcheck source=/dev/null
 source dev-container-features-test-lib
 
+# The CLI can start the test before the entrypoint of the Feature ends.
+check "entrypoint done" timeout 60 sh -c 'until [ -f /run/podman-in-podman/ready ]; do sleep 0.5; done'
+
 uid=$(id -u)
 info_is() { [ "$(podman info --format "$1")" = "$2" ]; }
 # podman info of Podman 4.9 (ubuntu:noble) has no RootlessNetworkCmd.

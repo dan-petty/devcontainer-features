@@ -5,6 +5,9 @@ set -e
 # shellcheck source=/dev/null
 source dev-container-features-test-lib
 
+# The CLI can start the test before the entrypoint of the Feature ends.
+check "entrypoint done" timeout 60 sh -c 'until [ -f /run/podman-in-podman/ready ]; do sleep 0.5; done'
+
 context=$(mktemp -d)
 cat > "$context/Containerfile" << 'CONTAINERFILE'
 FROM quay.io/libpod/alpine:latest

@@ -5,6 +5,9 @@ set -e
 # shellcheck source=/dev/null
 source dev-container-features-test-lib
 
+# The CLI can start the test before the entrypoint of the Feature ends.
+check "entrypoint done" timeout 60 sh -c 'until [ -f /run/podman-in-podman/ready ]; do sleep 0.5; done'
+
 finds() { "${@:3}" exec -T "$1" nslookup "$2" | grep "^Name:"; }
 names_podman() { "$@" | grep Podman; }
 

@@ -49,6 +49,7 @@ The entrypoint `/usr/local/share/podman-init.sh` runs at each start. When the co
 3. Makes `/run/user/<uid>` for the remote user.
 4. Writes the ranges of the remote user in `/etc/subuid` and `/etc/subgid` again when they are not in the ID map of the container. Each range stays inside one line of the ID map, because the kernel refuses a range across two lines. Under rootless Podman with `--userns=keep-id` and a remote user with uid 1000, the ranges are `1:999` and `1001:64535`.
 5. Starts `podman system service` for the remote user when `dockerCompat` is true or `compose` is `docker-compose`. With `dockerCompat`, `/var/run/docker.sock` is a link to its socket.
+6. Writes the file `/run/podman-in-podman/ready` at the end. The Dev Containers CLI does not wait for the entrypoint before it continues, so a command that needs Podman just after the start can wait for this file.
 
 ## Storage
 

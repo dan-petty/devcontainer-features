@@ -7,6 +7,9 @@ set -e
 SELF=/usr/local/share/podman-init.sh
 CONFIG=/usr/local/share/podman-in-podman/config
 SUBID_RANGES=/usr/local/share/podman-subid-ranges.sh
+# The Dev Containers CLI starts the entrypoints after the container prints "Container
+# started", so the setup can still run when a tool starts. The marker tells that it ended.
+READY=/run/podman-in-podman/ready
 
 finish() {
     if [ "$#" -gt 0 ]; then
@@ -25,6 +28,9 @@ fi
 # shellcheck source=/dev/null
 . "$CONFIG"
 user=${PODMAN_USER:-root}
+
+# The marker of an earlier start is not valid for this start.
+rm -f "$READY"
 
 # a. Make the root mount shared, as moby hack/dind does. Rootless Podman otherwise
 # warns that "/" is not a shared mount.
@@ -127,5 +133,8 @@ if [ "${PODMAN_SOCKET:-false}" = "true" ]; then
         ln -sfn "$sock" /var/run/docker.sock
     fi
 fi
+
+mkdir -p "${READY%/*}"
+touch "$READY"
 
 finish "$@"

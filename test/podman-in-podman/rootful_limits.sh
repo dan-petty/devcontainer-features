@@ -5,6 +5,9 @@ set -e
 # shellcheck source=/dev/null
 source dev-container-features-test-lib
 
+# The CLI can start the test before the entrypoint of the Feature ends.
+check "entrypoint done" timeout 60 sh -c 'until [ -f /run/podman-in-podman/ready ]; do sleep 0.5; done'
+
 limits_apply() {
     local out
     out=$(sudo podman run --rm --memory 64m --cpus 0.5 quay.io/libpod/alpine:latest cat /sys/fs/cgroup/memory.max /sys/fs/cgroup/cpu.max)
