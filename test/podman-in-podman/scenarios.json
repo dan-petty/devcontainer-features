@@ -1,0 +1,125 @@
+{
+    "rootless_vscode_keepid": {
+        "image": "debian:sid",
+        "containerUser": "root",
+        "remoteUser": "vscode",
+        "features": {
+            "ghcr.io/devcontainers/features/common-utils:2": {
+                "username": "vscode",
+                "installZsh": false,
+                "installOhMyZsh": false,
+                "upgradePackages": false
+            },
+            "podman-in-podman": {}
+        }
+    },
+    "rootful_limits": {
+        "image": "debian:sid",
+        "remoteUser": "vscode",
+        "features": {
+            "ghcr.io/devcontainers/features/common-utils:2": {
+                "username": "vscode",
+                "installZsh": false,
+                "installOhMyZsh": false,
+                "upgradePackages": false
+            },
+            "podman-in-podman": {}
+        }
+    },
+    "build": {
+        "image": "debian:sid",
+        "remoteUser": "vscode",
+        "features": {
+            "ghcr.io/devcontainers/features/common-utils:2": {
+                "username": "vscode",
+                "installZsh": false,
+                "installOhMyZsh": false,
+                "upgradePackages": false
+            },
+            "podman-in-podman": {}
+        }
+    },
+    "compose_podman": {
+        "image": "debian:sid",
+        "remoteUser": "vscode",
+        "features": {
+            "ghcr.io/devcontainers/features/common-utils:2": {
+                "username": "vscode",
+                "installZsh": false,
+                "installOhMyZsh": false,
+                "upgradePackages": false
+            },
+            "podman-in-podman": {}
+        }
+    },
+    "compose_docker": {
+        "image": "debian:sid",
+        "remoteUser": "vscode",
+        "features": {
+            "ghcr.io/devcontainers/features/common-utils:2": {
+                "username": "vscode",
+                "installZsh": false,
+                "installOhMyZsh": false,
+                "upgradePackages": false
+            },
+            "podman-in-podman": {
+                "compose": "docker-compose",
+                "dockerCompat": true
+            }
+        }
+    },
+    "minimal": {
+        "image": "debian:sid",
+        "features": {
+            "podman-in-podman": {
+                "buildah": false,
+                "skopeo": false,
+                "compose": "none"
+            }
+        }
+    },
+    "with_docker_in_docker": {
+        "build": {
+            "dockerfile": "Dockerfile",
+            "args": {
+                "BASE_IMAGE": "debian:sid"
+            }
+        },
+        "remoteUser": "vscode",
+        "features": {
+            "ghcr.io/devcontainers/features/common-utils:2": {
+                "username": "vscode",
+                "installZsh": false,
+                "installOhMyZsh": false,
+                "upgradePackages": false
+            },
+            "ghcr.io/devcontainers/features/docker-in-docker:4": {
+                "moby": false
+            },
+            "podman-in-podman": {
+                "dockerCompat": true
+            }
+        }
+    },
+    "subid_ranges": {
+        "image": "debian:sid",
+        "features": {
+            "podman-in-podman": {}
+        }
+    },
+    "idempotent": {
+        "image": "debian:sid",
+        "remoteUser": "vscode",
+        "features": {
+            "ghcr.io/devcontainers/features/common-utils:2": {
+                "username": "vscode",
+                "installZsh": false,
+                "installOhMyZsh": false,
+                "upgradePackages": false
+            },
+            "podman-in-podman": {
+                "dockerCompat": true
+            }
+        }
+    }
+}
