@@ -13,7 +13,7 @@
     "docs": "devcontainer features generate-docs -p src -n dan-petty/devcontainer-features --github-owner dan-petty --github-repo devcontainer-features"
   },
   "devDependencies": {
-    "@devcontainers/cli": "0.90.0",
+    "@devcontainers/cli": "0.91.0",
     "semver": "7.8.6"
   }
 }
