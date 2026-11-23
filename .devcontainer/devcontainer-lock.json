@@ -1,9 +1,0 @@
-{
-  "features": {
-    "ghcr.io/dan-petty/devcontainer-features/podman-in-podman:1": {
-      "version": "1.0.0",
-      "resolved": "ghcr.io/dan-petty/devcontainer-features/podman-in-podman@sha256:dde6f65e4e92c5c1822531c6d44ba65987d1881cae8e013525b37307d00b105b",
-      "integrity": "sha256:dde6f65e4e92c5c1822531c6d44ba65987d1881cae8e013525b37307d00b105b"
-    }
-  }
-}

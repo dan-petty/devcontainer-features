@@ -87,4 +87,4 @@ After the merge, `release.yaml` publishes each Feature with a new version to `gh
 
 ## Dependencies
 
-Renovate updates the CLI and `semver` in `package.json` and `package-lock.json`, the actions in `.github/workflows/`, and the image and the Feature in `.devcontainer/devcontainer.json`. `.github/renovate.json` extends the shared preset `github>dan-petty/infra//renovate/base` of [infra](https://github.com/dan-petty/infra).
+Renovate updates the CLI and `semver` in `package.json` and `package-lock.json`, the actions in `.github/workflows/`, and the image in `.devcontainer/devcontainer.json`. The Feature tag `1` in that file takes each release 1.x at the next build of the dev container, so the repository keeps no `devcontainer-lock.json`. `.github/renovate.json` extends the shared preset `github>dan-petty/infra//renovate/base` of [infra](https://github.com/dan-petty/infra).
