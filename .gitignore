@@ -1,2 +1,5 @@
 workspace.code-workspace
 node_modules/
+# The Dev Containers CLI writes this file at each build. Renovate cannot update it, so the
+# Feature tag 1 of .devcontainer/devcontainer.json takes each release 1.x at the next build.
+.devcontainer/devcontainer-lock.json
