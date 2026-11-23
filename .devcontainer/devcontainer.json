@@ -1,7 +1,15 @@
 {
     "name": "devcontainer-features",
-    "image": "ghcr.io/dan-petty/devops-cli/devcontainer:v0.179.5@sha256:77f20df0017784a8514896685c452fc363c3e18eb99d3c3af8c7ef3dca9ec249",
+    "image": "mcr.microsoft.com/devcontainers/javascript-node:5-22@sha256:cd275c65a4b27a7790de915909be221d585fe645cf976cb1113b1ea9f62610d3",
+    "features": {
+        "ghcr.io/dan-petty/devcontainer-features/podman-in-podman:1": {
+            "dockerCompat": true
+        }
+    },
     "postCreateCommand": "npm ci",
+    "hostRequirements": {
+        "cpus": 4
+    },
     "customizations": {
         "vscode": {
             "extensions": [

@@ -2,12 +2,5 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>dan-petty/infra//renovate/base"
-  ],
-  "packageRules": [
-    {
-      "description": "The devops-cli dev container image publishes several tags a day, so even a patch waits for the Monday schedule of the preset.",
-      "matchPackageNames": ["ghcr.io/dan-petty/devops-cli/devcontainer"],
-      "schedule": ["* * * * 1"]
-    }
   ]
 }

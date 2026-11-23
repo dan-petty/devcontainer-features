@@ -32,7 +32,7 @@ Without the directive, `shellcheck` reports `SC1091` and the `Lint` workflow fai
 
 ## Set up
 
-Open the repository in its dev container, or install Node.js and Docker. Then install the Dev Containers CLI at the version of `package-lock.json`:
+Open the repository in its dev container, or install Node.js and Docker. The dev container is the image `mcr.microsoft.com/devcontainers/javascript-node` with the Feature `podman-in-podman` of this repository. Its `dockerCompat` option gives the `docker` command that the CLI runs. Then install the Dev Containers CLI at the version of `package-lock.json`:
 
 ```sh
 npm ci
@@ -87,4 +87,4 @@ After the merge, `release.yaml` publishes each Feature with a new version to `gh
 
 ## Dependencies
 
-Renovate updates the CLI and `semver` in `package.json` and `package-lock.json`, the actions in `.github/workflows/` and the image in `.devcontainer/devcontainer.json`. `.github/renovate.json` extends the shared preset of [devops-cli](https://github.com/dan-petty/devops-cli). The devops-cli image publishes several tags a day, so Renovate updates it only on Monday, also for a patch.
+Renovate updates the CLI and `semver` in `package.json` and `package-lock.json`, the actions in `.github/workflows/`, and the image and the Feature in `.devcontainer/devcontainer.json`. `.github/renovate.json` extends the shared preset `github>dan-petty/infra//renovate/base` of [infra](https://github.com/dan-petty/infra).
