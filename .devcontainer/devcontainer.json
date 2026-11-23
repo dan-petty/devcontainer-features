@@ -1,6 +1,6 @@
 {
     "name": "devcontainer-features",
-    "image": "ghcr.io/dan-petty/devops-cli/devcontainer:v0.179.5@sha256:77f20df0017784a8514896685c452fc363c3e18eb99d3c3af8c7ef3dca9ec249",
+    "image": "ghcr.io/dan-petty/devops-cli/devcontainer:v0.196.0@sha256:51cc73b9d17e7313f2f24dbd654c6f28c0be304e692016c1b9b96051e330cd50",
     "postCreateCommand": "npm ci",
     "customizations": {
         "vscode": {
