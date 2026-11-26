@@ -6,7 +6,7 @@
 - When you change a file in `src/<id>/` other than `README.md`, increase the `version` in `src/<id>/devcontainer-feature.json`. Use [semantic versioning](https://semver.org/). The release does not publish a version again, so it does not publish a change that has no higher version.
 - Do not edit `src/<id>/README.md`. Run `npm run docs` and commit the README in the same pull request.
 - Install packages from the Debian archive. Do not write a version pin into `install.sh`.
-- Start a new Feature at version `1.0.0`. In the same pull request, add a row to the Features table of `README.md`. `test-pr.yaml` gets the Feature ids from the changed files in `src/` and `test/`, so it needs no edit.
+- Start a new Feature at version `1.0.0`. In the same pull request, add a row to the Features table of `README.md`, and add the label `scope/<id>` to `.github/labels.yml`: the pull request title check accepts only the scopes that this file declares. `test-pr.yaml` gets the Feature ids from the changed files in `src/` and `test/`, so it needs no edit.
 - Make each `*.sh` file pass `shellcheck` at its default severity.
 - Write `test/<id>/scenarios.json` as JSON with no comments, and use `debian:sid` as the image of a scenario. The scenario jobs of `test-pr.yaml` replace each `debian:sid` in the file with their base image.
 
