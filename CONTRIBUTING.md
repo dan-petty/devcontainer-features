@@ -62,7 +62,7 @@ git ls-files -z '*.sh' | xargs -0r shellcheck
 npm run docs
 ```
 
-The jobs of `test-pr.yaml` test on `debian:sid`, `debian:trixie` and `ubuntu:noble`, on linux/amd64 only. A scenario with `keepid` in its name also runs in the `podman-host` job of `test-pr.yaml`. That job gives the rootless Podman of the runner the name `docker`. The CLI then starts a container with a non-root remote user with `--userns=keep-id`. Every scenario also runs under Docker in the `test-scenarios` job.
+The `test`, `test-scenarios` and `podman-host` jobs of `test-pr.yaml` test on `debian:sid`, `debian:trixie` and `ubuntu:noble`, on linux/amd64 only. A scenario with `keepid` in its name also runs in the `podman-host` job of `test-pr.yaml`. That job gives the rootless Podman of the runner the name `docker`. The CLI then starts a container with a non-root remote user with `--userns=keep-id`. Every scenario also runs under Docker in the `test-scenarios` job. The `test-global` job of `test-pr.yaml` runs `npm run test:global` on `ubuntu-latest` when a file under `test/_global` changes, and each global scenario runs on the image that `test/_global/scenarios.json` names.
 
 podman-in-podman and podman-outside-podman cannot be in one container: the install of the second one stops. podman-outside-podman also needs the Podman API socket of a host engine, and the container does not start when the directory of the socket is missing. Thus `npm test` and the `test-together` job of `test-all.yaml` leave podman-outside-podman out, and the other jobs test it alone. Before its tests, each job runs `.github/scripts/start-podman-host.sh`, which starts the rootful and rootless Podman API services of the runner. To test podman-outside-podman on your computer, start the Podman API socket of your user (`systemctl --user start podman.socket`), then run `npx devcontainer features test -f podman-outside-podman -i debian:sid --skip-scenarios`. The scenarios mount the socket directories of the runner, `/run/podman` and `$XDG_RUNTIME_DIR/podman`.
 
@@ -74,7 +74,7 @@ Rootless Podman with `--userns=keep-id` starts the container as the host user. O
 | --- | --- | --- |
 | `lint.yaml` | each pull request, each push to `main` | shellcheck, the compare of the two copies of `scripts/podman-common.sh`, the README check and the version check (with `semver`) |
 | `validate-metadata-files.yml` | each pull request | validates each `devcontainer-feature.json` against the schema |
-| `test-pr.yaml` | each pull request | tests each Feature with a changed file in `src/<id>/` or `test/<id>/` on `debian:sid`, `debian:trixie` and `ubuntu:noble` |
+| `test-pr.yaml` | each pull request | tests each Feature with a changed file in `src/<id>/` or `test/<id>/` on `debian:sid`, `debian:trixie` and `ubuntu:noble`, and the scenarios in `test/_global` when a file under it changes |
 | `test-all.yaml` | each push to `main`, each Monday, by hand | tests each Feature alone on `debian:sid`, then all Features except podman-outside-podman together in one container, and in a third job the scenarios in `test/_global` |
 | `test-manual.yaml` | by hand | tests the given Features on the given base image |
 | `release.yaml` | each push to `main` that changes `src/` | publishes the Features to GHCR, one run at a time |
