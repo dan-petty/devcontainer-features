@@ -21,7 +21,7 @@
 - **Pin `actions/checkout` by the tag v7.**: `.github/workflows/test-pr.yaml:28:- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7` is the full SHA that the workflow uses, and zizmor reports `unpinned-uses` for a tag.
 - **Give the new job 15 minutes on the job and 15 on the step.**: `.github/workflows/test-all.yaml:111:timeout-minutes: 25` bounds the same command in the weekly job, so 15 minutes gives a slow runner less headroom than the command already has.
 - **Give the new job 60 minutes on the job and 50 on the step.**: `.github/workflows/test-all.yaml:100:timeout-minutes: 30` bounds the same command, so a hung job would hold a runner twice as long as the existing job allows.
-- **Rely on the weekly `test-all.yaml` run for the global scenarios, as PR #11 did.**: `.github/workflows/test-all.yaml:8:- cron: "17 5 * * 1"` starts that run once a week, so a broken global scenario can pass pull request checks for up to seven days.
+- **Rely on the weekly `test-all.yaml` run for the global scenarios, as PR #11 did.**: `.github/workflows/test-all.yaml:8:- cron: "17 5 * * 1"` starts that run once a week, and the push to `main` also runs the global scenarios, so a broken global scenario passes the pull request checks and fails only after the merge.
 - **Report the live proof only in the Feasibility section and plan no task for it.**: The Expected section asks for a passing test-global check on a pull request, and `openspec/config.yaml:64:A check only a person can run is a plain bullet starting "Pending a person:".` asks for that bullet in the tasks.
 
 ## Security
