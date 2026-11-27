@@ -1,7 +1,18 @@
 # Copier writes this file. Change an answer with `copier update --data <question>=<answer>`, not here.
-_commit: v0.24.2
+_commit: v0.25.3
 _src_path: https://github.com/dan-petty/infra.git
 code_coverage: false
 code_owner: '@dan-petty'
 release_flow: false
-scopes: ''
+required_checks: ''
+scope_descriptions:
+    devcontainer: The dev container in .devcontainer/
+    github: GitHub repository settings and GitHub integrations
+    infra: Images and infrastructure tools
+    podman-in-podman: The Feature in src/podman-in-podman/
+    podman-outside-podman: The Feature in src/podman-outside-podman/
+    release: Publication of the Features
+    roadmap: The roadmap jobs and their settings
+    security: Security controls and findings
+    spec: OpenSpec changes and specs, such as a plan pull request
+scopes: ai,cli,config,devcontainer,github,infra,k8s,mcp,podman-in-podman,podman-outside-podman,release,review,roadmap,security,spec,telemetry
