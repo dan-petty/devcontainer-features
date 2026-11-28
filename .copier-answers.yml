@@ -1,8 +1,9 @@
 # Copier writes this file. Change an answer with `copier update --data <question>=<answer>`, not here.
-_commit: v0.1.0
+_commit: v0.2.0
 _src_path: https://github.com/dan-petty/github-workflows.git
 code_coverage: false
 code_owner: '@dan-petty'
+extra_labels: {}
 release_flow: false
 required_checks: ''
 scope_descriptions:
